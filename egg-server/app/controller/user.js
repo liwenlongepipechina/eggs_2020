@@ -12,7 +12,7 @@ class UserController extends Controller {
   /**
    * @summary 创建用户
    * @description 创建用户，记录用户账户/密码/类型
-   * @router post /api/user
+   * @router post /user
    * @request body createUserRequest *body
    * @response 200 baseResponse 创建成功
    */
@@ -79,7 +79,7 @@ class UserController extends Controller {
     const { id } = ctx.params;
     // 调用 Service 进行业务处理
     const res = await service.user.show(id);
-    // 设置响应内容和响应状态码
+    // // 设置响应内容和响应状态码
     ctx.helper.success({ ctx, res });
   }
 

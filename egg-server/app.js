@@ -31,13 +31,13 @@ class AppBootHook {
     // Worker is ready, can do some things
     // don't need to block the app boot.
     console.log('========Init Data=========');
-    const ctx = await this.app.createAnonymousContext();
-    await ctx.model.User.remove();
-    await ctx.service.user.create({
-      mobile: '13611388415',
-      password: '111111',
-      realName: '老夏',
-    });
+    // const ctx = await this.app.createAnonymousContext();
+    // await ctx.model.User.remove();
+    // await ctx.service.user.create({
+    //   mobile: '13611388415',
+    //   password: '111111',
+    //   realName: '老夏',
+    // });
   }
 
   async serverDidReady() {

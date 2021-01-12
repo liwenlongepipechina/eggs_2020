@@ -8,9 +8,10 @@ class UserService extends Service {
    * @param {*} payload
    */
   async create(payload) {
-    const { ctx, service } = this;
+    const { ctx } = this;
     payload.password = await ctx.genHash(payload.password);
-    return ctx.model.User.create(payload);
+    const result = await this.app.mysql.insert('user', { user_tel: payload.mobile, user_password: payload.password, user_name: payload.realName });
+    return result;
   }
 
   /**
@@ -18,12 +19,15 @@ class UserService extends Service {
    * @param {*} _id
    */
   async destroy(_id) {
-    const { ctx, service } = this;
+    const { ctx } = this;
     const user = await ctx.service.user.find(_id);
     if (!user) {
       ctx.throw(404, 'user not found');
     }
-    return ctx.model.User.findByIdAndRemove(_id);
+    const result = await this.app.mysql.delete('user', {
+      user_id: _id,
+    });
+    return result;
   }
 
   /**
@@ -32,23 +36,36 @@ class UserService extends Service {
    * @param {*} payload
    */
   async update(_id, payload) {
-    const { ctx, service } = this;
+    const { ctx } = this;
     const user = await ctx.service.user.find(_id);
     if (!user) {
       ctx.throw(404, 'user not found');
     }
-    return ctx.model.User.findByIdAndUpdate(_id, payload);
+    payload.password = await ctx.genHash(payload.password);
+    const row = {
+      user_name: payload.realName,
+      user_password: payload.password,
+      user_tel: payload.mobile,
+    };
+    const options = {
+      where: {
+        user_id: _id,
+      },
+    };
+    await this.app.mysql.update('user', row, options); // 更新 posts 表中的记录
   }
 
   /**
    * 查看单个用户
    */
   async show(_id) {
-    const user = await this.ctx.service.user.find(_id);
-    if (!user) {
-      this.ctx.throw(404, 'user not found');
-    }
-    return this.ctx.model.User.findById(_id).populate('role');
+    // const user = await this.ctx.service.user.find(_id);
+    // if (!user) {
+    //   this.ctx.throw(404, 'user not found');
+    // }
+    // return this.ctx.model.User.findById(_id).populate('role');
+    const user = await this.app.mysql.get('user', { user_id: _id });
+    return { user };
   }
 
   /**
@@ -110,7 +127,7 @@ class UserService extends Service {
    * @param {*} mobile
    */
   async findByMobile(mobile) {
-    return this.ctx.model.User.findOne({ mobile });
+    return this.app.mysql.get('user', { user_tel: mobile });
   }
 
   /**
@@ -118,7 +135,7 @@ class UserService extends Service {
    * @param {*} id
    */
   async find(id) {
-    return this.ctx.model.User.findById(id);
+    return this.app.mysql.get('user', { user_id: id });
   }
 
   /**
