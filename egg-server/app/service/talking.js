@@ -1,85 +1,89 @@
 // eslint-disable-next-line strict
 const Service = require('egg').Service;
 
-class UserService extends Service {
+class TalkingService extends Service {
 
   /**
-   * 创建用户
+   * 创建吐槽
    * @param {*} payload
    */
   async create(payload) {
-    const { ctx } = this;
-    const user = await ctx.service.user.findByMobile(payload.mobile);
-    if (user) {
-      ctx.throw(404, 'user already exists');
-    }
-    payload.password = await ctx.genHash(payload.password);
-    const result = await this.app.mysql.insert('user', { user_tel: payload.mobile, user_password: payload.password, user_name: payload.realName });
-    return result;
-  }
-
-  /**
-   * 删除用户
-   * @param {*} _id
-   */
-  async destroy(_id) {
-    const { ctx } = this;
-    const user = await ctx.service.user.find(_id);
-    if (!user) {
-      ctx.throw(404, 'user not found');
-    }
-    const result = await this.app.mysql.delete('user', {
-      user_id: _id,
+    const result = await this.app.mysql.insert('talking', {
+      content: payload.content,
+      createDate: this.app.mysql.literals.now,
+      isAnonymous: payload.isAnonymous,
+      article_id: payload.article_id,
+      article_name: payload.article_name,
+      like_count: 0,
     });
     return result;
   }
 
   /**
-   * 修改用户
+   * 删除吐槽
+   * @param {*} _id
+   */
+  async destroy(_id) {
+    const { ctx } = this;
+    const talking = await ctx.service.talking.find(_id);
+    if (!talking) {
+      ctx.throw(404, 'talking not found');
+    }
+    const result = await this.app.mysql.delete('talking', {
+      tk_id: _id,
+    });
+    return result;
+  }
+
+  /**
+   * 修改吐槽
    * @param {*} _id
    * @param {*} payload
    */
   async update(_id, payload) {
     const { ctx } = this;
-    const user = await ctx.service.user.find(_id);
-    if (!user) {
-      ctx.throw(404, 'user not found');
+    const talking = await ctx.service.talking.find(_id);
+    if (!talking) {
+      ctx.throw(404, 'talking not found');
     }
-    payload.password = await ctx.genHash(payload.password);
     const row = {
-      user_name: payload.realName,
-      user_password: payload.password,
-      user_tel: payload.mobile,
+      content: payload.content,
+      createDate: this.app.mysql.literals.now,
+      isAnonymous: payload.isAnonymous,
+      article_id: payload.article_id,
+      article_name: payload.article_name,
     };
     const options = {
       where: {
-        user_id: _id,
+        tk_id: _id,
       },
     };
-    const result = await this.app.mysql.update('user', row, options); // 更新 posts 表中的记录
+    const result = await this.app.mysql.update('talking', row, options); // 更新 talking 表中的记录
     return result;
   }
 
   /**
-   * 查看单个用户
+   * 查看单个吐槽
    */
   async show(_id) {
-    // const user = await this.ctx.service.user.find(_id);
-    // if (!user) {
-    //   this.ctx.throw(404, 'user not found');
-    // }
-    // return this.ctx.model.User.findById(_id).populate('role');
-    const user = await this.app.mysql.get('user', { user_id: _id });
-    return { user };
+    const { ctx } = this;
+
+    const talking = await this.app.mysql.get('talking', { tk_id: _id });
+    if (talking) {
+      talking.createDate = ctx.helper.formatTime(talking.createDate);
+    }
+
+    return { talking };
   }
 
   /**
-   * 查看用户列表
+   * 查看吐槽列表
    * @param {*} payload
    */
   async index(payload) {
-    const { currentPage, pageSize, isPaging, search } = payload;
-    const res = [];
+    const { ctx } = this;
+
+    const { currentPage, pageSize, search } = payload;
     let count = 0;
     const skip = ((Number(currentPage)) - 1) * Number(pageSize || 10);
     // if (isPaging) {
@@ -121,31 +125,35 @@ class UserService extends Service {
       limit: Number(payload.pageSize), // 返回数据量
       offset: skip, // 数据偏移量
     };
-    const results = await this.app.mysql.select('user', option);
+    const results = await this.app.mysql.select('talking', option);
 
-    const table = await this.app.mysql.select('user');
+    results.map((value, index) => {
+      results[index].createDate = ctx.helper.formatTime(results[index].createDate);
+    });
+
+    const table = await this.app.mysql.select('talking');
     count = table.length;
 
     return { count, list: results, pageSize: Number(pageSize), currentPage: Number(currentPage) };
   }
 
   /**
-   * 根据手机号查找
+   * 根据创建时间查找
    * @param {*} mobile
    */
-  async findByMobile(mobile) {
-    return this.app.mysql.get('user', { user_tel: mobile });
+  async findByMobile(createDate) {
+    return this.app.mysql.get('talking', { createDate });
   }
 
   /**
-   * 查找用户
+   * 查找吐槽
    * @param {*} id
    */
   async find(id) {
-    return this.app.mysql.get('user', { user_id: id });
+    return this.app.mysql.get('talking', { tk_id: id });
   }
 
 }
 
 
-module.exports = UserService;
+module.exports = TalkingService;
